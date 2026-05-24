@@ -650,7 +650,7 @@ export default function EventForm({ eventId }: EventFormProps) {
                             <Button 
                                 type="button" 
                                 variant="ghost" 
-                                onClick={() => handleApiSubmit(getValues(), 'draft')}
+                                onClick={handleSaveDraft}
                                 disabled={isSavingDraft || isSubmitting}
                                 className="px-6 rounded-xl font-bold h-12 text-slate-600 dark:text-slate-400 hover:text-primary transition-all w-full sm:w-[160px]"
                             >
@@ -671,7 +671,7 @@ export default function EventForm({ eventId }: EventFormProps) {
                 <EventPreviewModal 
                     isOpen={isPreviewOpen}
                     onClose={() => setIsPreviewOpen(false)}
-                    onPublish={() => handleApiSubmit(getValues(), 'published')}
+                    onPublish={handleSubmit(onSubmit)}
                     data={{
                         ...watchedValues,
                         previewUrl
