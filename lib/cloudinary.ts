@@ -11,16 +11,30 @@ export async function uploadToCloudinary(
   folder: string = 'campus-pulse'
 ): Promise<{ secure_url: string; public_id: string }> {
   // Dynamically configure to prevent initialization ordering / hoisting issues
-  cloudinary.config({
-    cloud_name: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
-    api_key: (process.env.CLOUDINARY_API_KEY || '').trim(),
-    api_secret: (process.env.CLOUDINARY_API_SECRET || '').trim(),
-    secure: true,
-  });
+  if (process.env.CLOUDINARY_URL) {
+    try {
+      const parsed = new URL(process.env.CLOUDINARY_URL.trim());
+      cloudinary.config({
+        cloud_name: parsed.hostname,
+        api_key: parsed.username,
+        api_secret: parsed.password,
+        secure: true,
+      });
+    } catch (urlErr) {
+      console.error('[Cloudinary] Failed to parse CLOUDINARY_URL:', urlErr);
+    }
+  } else {
+    cloudinary.config({
+      cloud_name: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
+      api_key: (process.env.CLOUDINARY_API_KEY || '').trim(),
+      api_secret: (process.env.CLOUDINARY_API_SECRET || '').trim(),
+      secure: true,
+    });
+  }
 
   return new Promise((resolve, reject) => {
     // If Cloudinary environment variables are missing, warn and reject early
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    if (!process.env.CLOUDINARY_URL && (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET)) {
       return reject(new Error('Cloudinary environment credentials are not configured.'));
     }
 
