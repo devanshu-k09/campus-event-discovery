@@ -72,7 +72,7 @@ export function EventChat({ eventId, currentUser, isRegistered, isHost, eventNam
         return () => {
             channel.unbind('new-message', handleNewMessage);
             channel.unbind('delete-message', handleDeleteMessage);
-            pusherClient.unsubscribe(`event-chat-${eventId}`);
+            pusherClient?.unsubscribe(`event-chat-${eventId}`);
         };
     }, [eventId]);
 

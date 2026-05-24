@@ -70,7 +70,7 @@ const eventSchema = z.object({
     path: ['meetingLink'],
 });
 
-type EventFormData = z.infer<typeof eventSchema>;
+type EventFormData = z.input<typeof eventSchema>;
 
 const CATEGORIES = [
     { value: 'tech', label: 'Technology' },
@@ -127,7 +127,6 @@ export default function EventForm({ eventId }: EventFormProps) {
             time: '',
             location: '',
             eventType: 'PHYSICAL',
-            status: 'draft',
             dynamicPricingEnabled: false,
             isPrivate: false,
             requiresApproval: false,
@@ -651,7 +650,7 @@ export default function EventForm({ eventId }: EventFormProps) {
                             <Button 
                                 type="button" 
                                 variant="ghost" 
-                                onClick={() => onSubmit(getValues(), 'draft')}
+                                onClick={() => handleApiSubmit(getValues(), 'draft')}
                                 disabled={isSavingDraft || isSubmitting}
                                 className="px-6 rounded-xl font-bold h-12 text-slate-600 dark:text-slate-400 hover:text-primary transition-all w-full sm:w-[160px]"
                             >
@@ -672,7 +671,7 @@ export default function EventForm({ eventId }: EventFormProps) {
                 <EventPreviewModal 
                     isOpen={isPreviewOpen}
                     onClose={() => setIsPreviewOpen(false)}
-                    onPublish={() => onSubmit(getValues(), 'published')}
+                    onPublish={() => handleApiSubmit(getValues(), 'published')}
                     data={{
                         ...watchedValues,
                         previewUrl

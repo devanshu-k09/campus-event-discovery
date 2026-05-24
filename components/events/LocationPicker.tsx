@@ -25,7 +25,8 @@ interface LocationPickerProps {
     error?: string;
 }
 
-const libraries: ("places" | "drawing" | "geometry" | "localContext" | "visualization")[] = ["places"];
+type Library = "places" | "drawing" | "geometry" | "visualization";
+const libraries: Library[] = ["places"];
 
 export function LocationPicker({ 
     onLocationSelect, 
