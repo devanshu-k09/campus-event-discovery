@@ -1,0 +1,377 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid()) @db.VarChar(30)
+  userId            String  @db.VarChar(30)
+  type              String  @db.VarChar(50)
+  provider          String  @db.VarChar(50)
+  providerAccountId String  @db.VarChar(100)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(50)
+  scope             String? @db.VarChar(255)
+  id_token          String? @db.Text
+  session_state     String? @db.VarChar(255)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Account_userId_fkey")
+
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
+  @@index([userId], map: "Account_userId_idx")
+  @@map("account")
+}
+
+model Event {
+  id               String         @id @default(cuid()) @db.VarChar(30)
+  title            String         @db.VarChar(200)
+  description      String         @db.Text
+  image            String         @db.LongText
+  eventQR          String?        @db.VarChar(500)
+  category         String         @db.VarChar(50)
+  date             DateTime
+  time             String         @db.VarChar(20)
+  duration         Int
+  location         String?        @db.VarChar(255)
+  locationName     String?        @db.VarChar(255)
+  locationAddress  String?        @db.Text
+  latitude         Float?
+  longitude        Float?
+  coordinates      String?        @db.VarChar(100)
+  price            Decimal        @default(0.00) @db.Decimal(10, 2)
+  capacity         Int
+  tags             Json
+  popularityScore  Int            @default(0)
+  viewCount        Int            @default(0)
+  status           event_status   @default(draft)
+  isFeatured       Boolean        @default(false)
+  isPrivate        Boolean        @default(false)
+  requiresApproval Boolean        @default(true)
+  showAttendeeList Boolean        @default(false)
+  organizerId      String         @db.VarChar(30)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  city             String?        @db.VarChar(100)
+  eventSource      String         @default("internal") @db.VarChar(20)
+  externalId       String?        @db.VarChar(255)
+  externalLink     String?        @db.VarChar(500)
+  organizer        User           @relation(fields: [organizerId], references: [id], map: "Event_organizerId_fkey")
+  likes            Like[]
+  registrations    Registration[]
+  reviews          Review[]
+  collaborators    EventCollaborator[]
+  activities       EventActivity[]
+  videoUrl         String?        @db.VarChar(500)
+  videoType        String?        @db.VarChar(20) // 'upload' | 'youtube' | 'vimeo'
+  eventType        event_type     @default(PHYSICAL)
+  meetingLink      String?        @db.VarChar(500)
+  chatMessages     ChatMessage[]
+  dynamicPricingEnabled Boolean @default(false)
+  minPrice             Decimal? @db.Decimal(10, 2)
+  maxPrice             Decimal? @db.Decimal(10, 2)
+  priceThresholds      Json?    // Array of { seatsFilled: number, increase: number }
+  timeBasedIncrease    Json?    // Object like { lastHours: number, increase: number }
+
+  @@index([date], map: "Event_date_idx")
+  @@index([isFeatured], map: "Event_isFeatured_idx")
+  @@index([organizerId], map: "Event_organizerId_idx")
+  @@index([status], map: "Event_status_idx")
+  @@map("event")
+}
+
+model EventCollaborator {
+  id        String            @id @default(cuid()) @db.VarChar(30)
+  eventId   String            @db.VarChar(30)
+  userId    String            @db.VarChar(30)
+  role      collaborator_role @default(CO_HOST)
+  status    invite_status     @default(INVITED)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade, map: "EventCollaborator_eventId_fkey")
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade, map: "EventCollaborator_userId_fkey")
+
+  @@unique([eventId, userId], map: "EventCollaborator_eventId_userId_key")
+  @@index([eventId], map: "EventCollaborator_eventId_idx")
+  @@index([userId], map: "EventCollaborator_userId_idx")
+  @@map("eventcollaborator")
+}
+
+model ExternalEventCache {
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  externalId   String   @unique(map: "ExternalEventCache_externalId_key") @db.VarChar(255)
+  source       String   @db.VarChar(50)
+  title        String   @db.VarChar(300)
+  description  String   @db.Text
+  image        String   @db.LongText
+  category     String   @db.VarChar(50)
+  date         DateTime
+  time         String   @db.VarChar(20)
+  location     String   @db.VarChar(255)
+  city         String   @db.VarChar(100)
+  price        Decimal  @default(0.00) @db.Decimal(10, 2)
+  externalLink String   @db.VarChar(500)
+  rawData      Json
+  fetchedAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([category], map: "ExternalEventCache_category_idx")
+  @@index([city], map: "ExternalEventCache_city_idx")
+  @@index([expiresAt], map: "ExternalEventCache_expiresAt_idx")
+  @@map("externaleventcache")
+}
+
+model Like {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  userId    String   @db.VarChar(30)
+  eventId   String   @db.VarChar(30)
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade, map: "Like_eventId_fkey")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Like_userId_fkey")
+
+  @@unique([userId, eventId], map: "Like_userId_eventId_key")
+  @@index([eventId], map: "Like_eventId_idx")
+  @@index([userId], map: "Like_userId_idx")
+  @@map("like")
+}
+
+model Registration {
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  status       String   @default("registered") @db.VarChar(30)
+  attended     Boolean  @default(false)
+  qrCode       String?  @db.VarChar(500)
+  paymentQR    String?  @db.VarChar(500)
+  reminderSent Boolean  @default(false)
+  userId       String   @db.VarChar(30)
+  eventId      String   @db.VarChar(30)
+  registeredAt DateTime @default(now())
+  ticketCount  Int      @default(1)
+  priceAtBooking Decimal  @default(0.00) @db.Decimal(10, 2)
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade, map: "Registration_eventId_fkey")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Registration_userId_fkey")
+
+  @@unique([userId, eventId], map: "Registration_userId_eventId_key")
+  @@index([eventId], map: "Registration_eventId_idx")
+  @@index([userId], map: "Registration_userId_idx")
+  @@map("registration")
+}
+
+model Review {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  rating    Int
+  comment   String   @db.Text
+  helpful   Int      @default(0)
+  userId    String   @db.VarChar(30)
+  eventId   String   @db.VarChar(30)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade, map: "Review_eventId_fkey")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Review_userId_fkey")
+
+  @@unique([userId, eventId], map: "Review_userId_eventId_key")
+  @@index([eventId], map: "Review_eventId_idx")
+  @@index([userId], map: "Review_userId_idx")
+  @@map("review")
+}
+
+model Session {
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  sessionToken String   @unique(map: "Session_sessionToken_key") @db.VarChar(255)
+  userId       String   @db.VarChar(30)
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "Session_userId_fkey")
+
+  @@index([userId], map: "Session_userId_idx")
+  @@map("session")
+}
+
+model User {
+  id              String            @id @default(cuid()) @db.VarChar(30)
+  name            String?           @db.VarChar(100)
+  email           String            @unique(map: "User_email_key") @db.VarChar(150)
+  emailVerified   DateTime?
+  password        String?           @db.VarChar(255)
+  image           String?           @db.LongText
+  collegeName     String?           @db.VarChar(150)
+  year            Int?
+  department      String?           @db.VarChar(100)
+  interests       Json
+  userType             String?           @db.VarChar(50)
+  studentId            String?           @db.VarChar(50)
+  organizationName     String?           @db.VarChar(150)
+  designation          String?           @db.VarChar(100)
+  employeeId           String?           @db.VarChar(50)
+  graduationYear       Int?
+  currentProfession    String?           @db.VarChar(100)
+  organizerType        String?           @db.VarChar(50)
+  officialEmail        String?           @db.VarChar(150)
+  websiteOrInstagram   String?           @db.VarChar(255)
+  companyName          String?           @db.VarChar(150)
+  jobRole              String?           @db.VarChar(100)
+  preferredCity        String?           @db.VarChar(100)
+  interestedCategories Json?
+  purpose              Json?
+  preferredEventTypes  Json?
+  profilePhoto         String?           @db.LongText
+  points          Int               @default(0)
+  role            user_role         @default(student)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  bio             String?           @db.Text
+  location        String?           @db.VarChar(150)
+  account         Account[]
+  events          Event[]
+  likes           Like[]
+  registrations   Registration[]
+  reviews         Review[]
+  session         Session[]
+  userInteraction UserInteraction[]
+  collaborators   EventCollaborator[]
+  activities      EventActivity[]
+  notifications   Notification[]
+  chatMessages    ChatMessage[]
+  followers       Follow[]          @relation("following")
+  following       Follow[]          @relation("follower")
+
+  @@index([email], map: "User_email_idx")
+  @@map("user")
+}
+
+model Follow {
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  followerId  String   @db.VarChar(30)
+  followingId String   @db.VarChar(30)
+  createdAt   DateTime @default(now())
+
+  follower    User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follow")
+}
+
+model UserInteraction {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  userId    String   @db.VarChar(30)
+  eventId   String?  @db.VarChar(30)
+  action    String   @db.VarChar(30)
+  category  String?  @db.VarChar(50)
+  metadata  Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "UserInteraction_userId_fkey")
+
+  @@index([action], map: "UserInteraction_action_idx")
+  @@index([createdAt], map: "UserInteraction_createdAt_idx")
+  @@index([userId], map: "UserInteraction_userId_idx")
+  @@map("userinteraction")
+}
+
+model EventActivity {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  eventId   String   @db.VarChar(30)
+  userId    String   @db.VarChar(30)
+  action    String   @db.VarChar(100) // e.g., "edited event", "published event"
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
+  @@map("eventactivity")
+}
+
+model Notification {
+  id        String            @id @default(cuid()) @db.VarChar(30)
+  userId    String            @db.VarChar(30)
+  type      notification_type
+  title     String            @db.VarChar(200)
+  message   String            @db.Text
+  isRead    Boolean           @default(false)
+  link      String?           @db.VarChar(500)
+  createdAt DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notification")
+}
+
+model verificationtoken {
+  identifier String   @db.VarChar(255)
+  token      String   @unique(map: "VerificationToken_token_key") @db.VarChar(255)
+  expires    DateTime
+
+  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+}
+
+enum user_role {
+  student
+  organizer
+  admin
+}
+
+enum event_status {
+  draft
+  published
+  cancelled
+  completed
+}
+
+enum event_type {
+  PHYSICAL
+  ONLINE
+  HYBRID
+}
+
+enum collaborator_role {
+  OWNER
+  CO_HOST
+  MANAGER
+}
+
+enum invite_status {
+  INVITED
+  ACCEPTED
+  REJECTED
+}
+
+enum notification_type {
+  INVITATION
+  EVENT_UPDATE
+  REGISTRATION
+  MESSAGE
+  SYSTEM
+}
+
+enum chat_message_type {
+  TEXT
+  SYSTEM
+  IMAGE
+  FILE
+}
+
+model ChatMessage {
+  id        String            @id @default(cuid()) @db.VarChar(30)
+  eventId   String            @db.VarChar(30)
+  userId    String            @db.VarChar(30)
+  message   String            @db.Text
+  type      chat_message_type @default(TEXT)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([userId])
+  @@map("chat_message")
+}
