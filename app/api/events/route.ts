@@ -119,14 +119,25 @@ export async function POST(req: NextRequest) {
     const imageFile = formData.get('image') as File | null;
 
     if (imageFile && imageFile.size > 0) {
-      const buffer = Buffer.from(await imageFile.arrayBuffer());
-      const ext = imageFile.name.split('.').pop() || 'jpg';
-      const fileName = `${crypto.randomUUID()}.${ext}`;
-      const uploadDir = join(process.cwd(), 'public', 'uploads', 'covers');
+      try {
+        const buffer = Buffer.from(await imageFile.arrayBuffer());
+        const ext = imageFile.name.split('.').pop() || 'jpg';
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'covers');
 
-      await mkdir(uploadDir, { recursive: true });
-      await writeFile(join(uploadDir, fileName), buffer);
-      imageUrl = `/uploads/covers/${fileName}`;
+        await mkdir(uploadDir, { recursive: true });
+        await writeFile(join(uploadDir, fileName), buffer);
+        imageUrl = `/uploads/covers/${fileName}`;
+      } catch (err: any) {
+        if (err.code === 'EROFS') {
+          console.warn("Read-only filesystem detected, storing cover image as base64 data URL");
+          const buffer = Buffer.from(await imageFile.arrayBuffer());
+          const mimeType = imageFile.type || 'image/jpeg';
+          imageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+        } else {
+          throw err;
+        }
+      }
     }
 
     if (!imageUrl) {

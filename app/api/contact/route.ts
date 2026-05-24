@@ -28,15 +28,27 @@ export async function POST(req: Request) {
     }
 
     // Ensure data directory exists
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    try {
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+    } catch (dirErr) {}
+
+    const tmpContactFilePath = path.join("/tmp", "contact_messages.json");
+    function getContactFilePath() {
+      if (fs.existsSync(tmpContactFilePath)) {
+        return tmpContactFilePath;
+      }
+      return contactFilePath;
     }
+
+    const activeContactFilePath = getContactFilePath();
 
     // Load existing messages or init
     let messages = [];
-    if (fs.existsSync(contactFilePath)) {
+    if (fs.existsSync(activeContactFilePath)) {
       try {
-        const fileContent = fs.readFileSync(contactFilePath, "utf8");
+        const fileContent = fs.readFileSync(activeContactFilePath, "utf8");
         messages = JSON.parse(fileContent);
         if (!Array.isArray(messages)) {
           messages = [];
@@ -59,7 +71,20 @@ export async function POST(req: Request) {
     messages.push(newMessage);
 
     // Save back to file
-    fs.writeFileSync(contactFilePath, JSON.stringify(messages, null, 2), "utf8");
+    try {
+      fs.writeFileSync(contactFilePath, JSON.stringify(messages, null, 2), "utf8");
+    } catch (writeError: any) {
+      if (writeError.code === 'EROFS') {
+        console.warn("Read-only filesystem detected, writing contact message to /tmp");
+        try {
+          fs.writeFileSync(tmpContactFilePath, JSON.stringify(messages, null, 2), "utf8");
+        } catch (tmpErr) {
+          console.error("Failed to write contact message to /tmp", tmpErr);
+        }
+      } else {
+        throw writeError;
+      }
+    }
 
     console.log(`[Contact API] Message from ${name} (${email}) saved.`);
 

@@ -88,26 +88,46 @@ export async function saveEvent(formData: FormData) {
 
     // Handle Image Upload
     if (imageFile && imageFile.size > 0) {
-      const buffer = Buffer.from(await imageFile.arrayBuffer());
-      const ext = imageFile.name.split('.').pop() || 'jpg';
-      const fileName = `${crypto.randomUUID()}.${ext}`;
-      const uploadDir = join(process.cwd(), 'public', 'uploads', 'images');
+      try {
+        const buffer = Buffer.from(await imageFile.arrayBuffer());
+        const ext = imageFile.name.split('.').pop() || 'jpg';
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'images');
 
-      await mkdir(uploadDir, { recursive: true }).catch(() => {});
-      await writeFile(join(uploadDir, fileName), buffer);
-      imageUrl = `/uploads/images/${fileName}`;
+        await mkdir(uploadDir, { recursive: true }).catch(() => {});
+        await writeFile(join(uploadDir, fileName), buffer);
+        imageUrl = `/uploads/images/${fileName}`;
+      } catch (err: any) {
+        if (err.code === 'EROFS') {
+          console.warn("Read-only filesystem detected, storing cover image as base64 data URL");
+          const buffer = Buffer.from(await imageFile.arrayBuffer());
+          const mimeType = imageFile.type || 'image/jpeg';
+          imageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+        } else {
+          throw err;
+        }
+      }
     }
 
     // Handle Video Upload or Link
     if (videoType === 'upload' && videoFile && videoFile.size > 0) {
-      const buffer = Buffer.from(await videoFile.arrayBuffer());
-      const ext = videoFile.name.split('.').pop() || 'mp4';
-      const fileName = `${crypto.randomUUID()}.${ext}`;
-      const uploadDir = join(process.cwd(), 'public', 'uploads', 'videos');
+      try {
+        const buffer = Buffer.from(await videoFile.arrayBuffer());
+        const ext = videoFile.name.split('.').pop() || 'mp4';
+        const fileName = `${crypto.randomUUID()}.${ext}`;
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'videos');
 
-      await mkdir(uploadDir, { recursive: true }).catch(() => {});
-      await writeFile(join(uploadDir, fileName), buffer);
-      videoUrl = `/uploads/videos/${fileName}`;
+        await mkdir(uploadDir, { recursive: true }).catch(() => {});
+        await writeFile(join(uploadDir, fileName), buffer);
+        videoUrl = `/uploads/videos/${fileName}`;
+      } catch (err: any) {
+        if (err.code === 'EROFS') {
+          console.warn("Read-only filesystem detected, rejecting local video file upload");
+          throw new Error('Local video file uploads are not supported on this serverless deployment. Please select "YouTube" or "Vimeo" link option instead.');
+        } else {
+          throw err;
+        }
+      }
     } else if ((videoType === 'youtube' || videoType === 'vimeo') && videoLink) {
       videoUrl = videoLink;
     }

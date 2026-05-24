@@ -37,15 +37,27 @@ export async function POST(req: Request) {
     }
 
     // Ensure data directory exists
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    try {
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+    } catch (dirErr) {}
+
+    const tmpNewsletterFilePath = path.join("/tmp", "newsletter_subscribers.json");
+    function getNewsletterFilePath() {
+      if (fs.existsSync(tmpNewsletterFilePath)) {
+        return tmpNewsletterFilePath;
+      }
+      return newsletterFilePath;
     }
+
+    const activeNewsletterFilePath = getNewsletterFilePath();
 
     // Load existing subscribers or init
     let subscribers = [];
-    if (fs.existsSync(newsletterFilePath)) {
+    if (fs.existsSync(activeNewsletterFilePath)) {
       try {
-        const fileContent = fs.readFileSync(newsletterFilePath, "utf8");
+        const fileContent = fs.readFileSync(activeNewsletterFilePath, "utf8");
         if (fileContent && fileContent.trim()) {
           subscribers = JSON.parse(fileContent);
         }
@@ -81,7 +93,20 @@ export async function POST(req: Request) {
     subscribers.push(newSubscriber);
 
     // Save back to file
-    fs.writeFileSync(newsletterFilePath, JSON.stringify(subscribers, null, 2), "utf8");
+    try {
+      fs.writeFileSync(newsletterFilePath, JSON.stringify(subscribers, null, 2), "utf8");
+    } catch (writeError: any) {
+      if (writeError.code === 'EROFS') {
+        console.warn("Read-only filesystem detected, writing newsletter subscriber to /tmp");
+        try {
+          fs.writeFileSync(tmpNewsletterFilePath, JSON.stringify(subscribers, null, 2), "utf8");
+        } catch (tmpErr) {
+          console.error("Failed to write newsletter subscribers to /tmp", tmpErr);
+        }
+      } else {
+        throw writeError;
+      }
+    }
 
     console.log(`[Newsletter API] New subscriber added: ${emailLower}`);
 
