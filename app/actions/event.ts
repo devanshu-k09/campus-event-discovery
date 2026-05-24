@@ -91,8 +91,11 @@ export async function saveEvent(formData: FormData) {
     // Handle Image Upload
     if (imageFile && imageFile.size > 0) {
       try {
+        console.log(`[saveEvent] Starting Cloudinary upload for image: ${imageFile.name}, size: ${imageFile.size} bytes`);
         const buffer = Buffer.from(await imageFile.arrayBuffer());
+        console.log(`[saveEvent] Created buffer, length: ${buffer.length} bytes`);
         const result = await uploadToCloudinary(buffer, 'events');
+        console.log(`[saveEvent] Cloudinary upload successful, secure_url: ${result.secure_url}`);
         imageUrl = result.secure_url;
       } catch (err: any) {
         console.error('[Action] Cloudinary upload failed:', err);

@@ -1,12 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary using environment variables
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
+// Cloudinary configuration is performed dynamically inside the upload utility function to ensure environment variables are fully loaded.
 
 /**
  * Uploads a file buffer directly to Cloudinary using upload_stream.
@@ -16,6 +10,14 @@ export async function uploadToCloudinary(
   fileBuffer: Buffer,
   folder: string = 'campus-pulse'
 ): Promise<{ secure_url: string; public_id: string }> {
+  // Dynamically configure to prevent initialization ordering / hoisting issues
+  cloudinary.config({
+    cloud_name: (process.env.CLOUDINARY_CLOUD_NAME || '').trim(),
+    api_key: (process.env.CLOUDINARY_API_KEY || '').trim(),
+    api_secret: (process.env.CLOUDINARY_API_SECRET || '').trim(),
+    secure: true,
+  });
+
   return new Promise((resolve, reject) => {
     // If Cloudinary environment variables are missing, warn and reject early
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {

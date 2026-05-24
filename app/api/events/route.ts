@@ -120,8 +120,11 @@ export async function POST(req: NextRequest) {
 
     if (imageFile && imageFile.size > 0) {
       try {
+        console.log(`[API POST] Starting Cloudinary upload for image: ${imageFile.name}, size: ${imageFile.size} bytes`);
         const buffer = Buffer.from(await imageFile.arrayBuffer());
+        console.log(`[API POST] Created buffer, length: ${buffer.length} bytes`);
         const result = await uploadToCloudinary(buffer, 'events');
+        console.log(`[API POST] Cloudinary upload successful, secure_url: ${result.secure_url}`);
         imageUrl = result.secure_url;
       } catch (err: any) {
         console.error('[API] Cloudinary upload failed:', err);
