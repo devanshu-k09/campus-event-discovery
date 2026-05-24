@@ -128,8 +128,7 @@ export async function POST(req: NextRequest) {
         imageUrl = result.secure_url;
       } catch (err: any) {
         console.error('[API] Cloudinary upload failed:', err);
-        // Fallback placeholder image if upload fails
-        imageUrl = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop';
+        throw new Error(`Failed to upload cover image to Cloudinary: ${err.message || err}`);
       }
     }
 
