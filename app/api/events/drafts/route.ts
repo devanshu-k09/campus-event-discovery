@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getFullImageUrl } from '@/lib/utils';
 
 /**
  * GET /api/events/drafts
@@ -32,9 +33,7 @@ export async function GET() {
       ...draft,
       price: Number(draft.price),
       priceFormatted: `₹${Number(draft.price).toFixed(2)}`,
-      image: draft.image.startsWith('http')
-        ? draft.image
-        : `${baseUrl}${draft.image}`,
+      image: getFullImageUrl(draft.image, baseUrl),
       tags: draft.tags as string[],
     }));
 

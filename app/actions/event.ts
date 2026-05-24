@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { getFullImageUrl } from '@/lib/utils';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import crypto from 'crypto';
@@ -90,22 +92,12 @@ export async function saveEvent(formData: FormData) {
     if (imageFile && imageFile.size > 0) {
       try {
         const buffer = Buffer.from(await imageFile.arrayBuffer());
-        const ext = imageFile.name.split('.').pop() || 'jpg';
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const uploadDir = join(process.cwd(), 'public', 'uploads', 'images');
-
-        await mkdir(uploadDir, { recursive: true }).catch(() => {});
-        await writeFile(join(uploadDir, fileName), buffer);
-        imageUrl = `/uploads/images/${fileName}`;
+        const result = await uploadToCloudinary(buffer, 'events');
+        imageUrl = result.secure_url;
       } catch (err: any) {
-        if (err.code === 'EROFS') {
-          console.warn("Read-only filesystem detected, storing cover image as base64 data URL");
-          const buffer = Buffer.from(await imageFile.arrayBuffer());
-          const mimeType = imageFile.type || 'image/jpeg';
-          imageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
-        } else {
-          throw err;
-        }
+        console.error('[Action] Cloudinary upload failed:', err);
+        // Fallback placeholder image if upload fails
+        imageUrl = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop';
       }
     }
 
@@ -351,9 +343,7 @@ export async function getDrafts() {
     minPrice: draft.minPrice ? Number(draft.minPrice) : null,
     maxPrice: draft.maxPrice ? Number(draft.maxPrice) : null,
     priceFormatted: `₹${Number(draft.price).toFixed(2)}`,
-    image: draft.image.startsWith('http')
-      ? draft.image
-      : `${baseUrl}${draft.image}`,
+    image: getFullImageUrl(draft.image, baseUrl),
     tags: draft.tags as string[],
   }));
 }
@@ -409,9 +399,7 @@ export async function getPublishedEvents(options?: {
     minPrice: event.minPrice ? Number(event.minPrice) : null,
     maxPrice: event.maxPrice ? Number(event.maxPrice) : null,
     priceFormatted: `₹${Number(event.price).toFixed(2)}`,
-    image: event.image.startsWith('http')
-      ? event.image
-      : `${baseUrl}${event.image}`,
+    image: getFullImageUrl(event.image, baseUrl),
     tags: event.tags as string[],
   }));
 }
@@ -473,9 +461,7 @@ export async function publishDraft(eventId: string) {
         minPrice: updatedEvent.minPrice ? Number(updatedEvent.minPrice) : null,
         maxPrice: updatedEvent.maxPrice ? Number(updatedEvent.maxPrice) : null,
         priceFormatted: `₹${Number(updatedEvent.price).toFixed(2)}`,
-        image: updatedEvent.image.startsWith('http')
-          ? updatedEvent.image
-          : `${baseUrl}${updatedEvent.image}`,
+        image: getFullImageUrl(updatedEvent.image, baseUrl),
       },
     };
   } catch (error: any) {
@@ -538,9 +524,7 @@ export async function getEventById(eventId: string) {
       minPrice: event.minPrice ? Number(event.minPrice) : null,
       maxPrice: event.maxPrice ? Number(event.maxPrice) : null,
       priceFormatted: `₹${Number(event.price).toFixed(2)}`,
-      image: event.image.startsWith('http')
-        ? event.image
-        : `${baseUrl}${event.image}`,
+      image: getFullImageUrl(event.image, baseUrl),
       tags: event.tags as string[],
       registeredCount: event._count.registrations,
     };
@@ -829,9 +813,7 @@ export async function getMyRegistrations() {
         minPrice: reg.event.minPrice ? Number(reg.event.minPrice) : null,
         maxPrice: reg.event.maxPrice ? Number(reg.event.maxPrice) : null,
         priceFormatted: `₹${Number(reg.event.price).toFixed(2)}`,
-        image: reg.event.image.startsWith('http')
-          ? reg.event.image
-          : `${baseUrl}${reg.event.image}`,
+        image: getFullImageUrl(reg.event.image, baseUrl),
         tags: reg.event.tags as string[],
         registeredCount: reg.event._count.registrations,
       },
@@ -878,9 +860,7 @@ export async function getOrganizerById(userId: string) {
         minPrice: event.minPrice ? Number(event.minPrice) : null,
         maxPrice: event.maxPrice ? Number(event.maxPrice) : null,
         priceFormatted: `₹${Number(event.price).toFixed(2)}`,
-        image: event.image.startsWith('http')
-          ? event.image
-          : `${baseUrl}${event.image}`,
+        image: getFullImageUrl(event.image, baseUrl),
         registeredCount: event._count.registrations
       }))
     };
@@ -1004,9 +984,7 @@ export async function getLikedEvents() {
       minPrice: like.event.minPrice ? Number(like.event.minPrice) : null,
       maxPrice: like.event.maxPrice ? Number(like.event.maxPrice) : null,
       priceFormatted: `₹${Number(like.event.price).toFixed(2)}`,
-      image: like.event.image.startsWith('http')
-        ? like.event.image
-        : `${baseUrl}${like.event.image}`,
+      image: getFullImageUrl(like.event.image, baseUrl),
       tags: like.event.tags as string[],
       registeredCount: like.event._count.registrations,
       likeCount: like.event._count.likes,

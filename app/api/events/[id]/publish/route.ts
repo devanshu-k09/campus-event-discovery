@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getFullImageUrl } from '@/lib/utils';
 
 /**
  * PUT /api/events/:id/publish
@@ -73,9 +74,7 @@ export async function PUT(
         ...updatedEvent,
         price: Number(updatedEvent.price),
         priceFormatted: `₹${Number(updatedEvent.price).toFixed(2)}`,
-        image: updatedEvent.image.startsWith('http')
-          ? updatedEvent.image
-          : `${baseUrl}${updatedEvent.image}`,
+        image: getFullImageUrl(updatedEvent.image, baseUrl),
         tags: updatedEvent.tags as string[],
       },
     });

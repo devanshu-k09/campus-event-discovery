@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getFullImageUrl } from '@/lib/utils';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import crypto from 'crypto';
@@ -58,9 +60,7 @@ export async function GET(req: NextRequest) {
       ...event,
       price: Number(event.price),
       priceFormatted: `₹${Number(event.price).toFixed(2)}`,
-      image: event.image.startsWith('http')
-        ? event.image
-        : `${baseUrl}${event.image}`,
+      image: getFullImageUrl(event.image, baseUrl),
       tags: event.tags as string[],
     }));
 
@@ -121,22 +121,12 @@ export async function POST(req: NextRequest) {
     if (imageFile && imageFile.size > 0) {
       try {
         const buffer = Buffer.from(await imageFile.arrayBuffer());
-        const ext = imageFile.name.split('.').pop() || 'jpg';
-        const fileName = `${crypto.randomUUID()}.${ext}`;
-        const uploadDir = join(process.cwd(), 'public', 'uploads', 'covers');
-
-        await mkdir(uploadDir, { recursive: true });
-        await writeFile(join(uploadDir, fileName), buffer);
-        imageUrl = `/uploads/covers/${fileName}`;
+        const result = await uploadToCloudinary(buffer, 'events');
+        imageUrl = result.secure_url;
       } catch (err: any) {
-        if (err.code === 'EROFS') {
-          console.warn("Read-only filesystem detected, storing cover image as base64 data URL");
-          const buffer = Buffer.from(await imageFile.arrayBuffer());
-          const mimeType = imageFile.type || 'image/jpeg';
-          imageUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
-        } else {
-          throw err;
-        }
+        console.error('[API] Cloudinary upload failed:', err);
+        // Fallback placeholder image if upload fails
+        imageUrl = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070&auto=format&fit=crop';
       }
     }
 
@@ -176,9 +166,7 @@ export async function POST(req: NextRequest) {
           ...event,
           price: Number(event.price),
           priceFormatted: `₹${Number(event.price).toFixed(2)}`,
-          image: event.image.startsWith('http')
-            ? event.image
-            : `${baseUrl}${event.image}`,
+          image: getFullImageUrl(event.image, baseUrl),
         },
       },
       { status: 201 }

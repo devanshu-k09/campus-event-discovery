@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getFullImageUrl } from '@/lib/utils';
 
 /**
  * GET /api/events/:id
@@ -43,9 +44,7 @@ export async function GET(
         ...event,
         price: Number(event.price),
         priceFormatted: `₹${Number(event.price).toFixed(2)}`,
-        image: event.image.startsWith('http')
-          ? event.image
-          : `${baseUrl}${event.image}`,
+        image: getFullImageUrl(event.image, baseUrl),
         tags: event.tags as string[],
       },
     });
@@ -128,9 +127,7 @@ export async function PUT(
         ...updatedEvent,
         price: Number(updatedEvent.price),
         priceFormatted: `₹${Number(updatedEvent.price).toFixed(2)}`,
-        image: updatedEvent.image.startsWith('http')
-          ? updatedEvent.image
-          : `${baseUrl}${updatedEvent.image}`,
+        image: getFullImageUrl(updatedEvent.image, baseUrl),
       },
     });
   } catch (error: any) {
