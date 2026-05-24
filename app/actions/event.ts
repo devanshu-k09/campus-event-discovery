@@ -99,7 +99,10 @@ export async function saveEvent(formData: FormData) {
         imageUrl = result.secure_url;
       } catch (err: any) {
         console.error('[Action] Cloudinary upload failed:', err);
-        throw new Error(`Failed to upload cover image to Cloudinary: ${err.message || err}`);
+        return {
+          success: false,
+          error: `Failed to upload cover image to Cloudinary: ${err.message || JSON.stringify(err)}`
+        };
       }
     }
 
