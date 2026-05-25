@@ -143,14 +143,17 @@ export async function POST(req: NextRequest) {
 
     // Send Welcome Email
     if (user.email) {
-      const emailHtml = getWelcomeEmailTemplate({ userName: user.name || 'New User' });
-      sendEmail({
-        to: user.email,
-        subject: 'Welcome to CampusPulse! 🎉',
-        html: emailHtml,
-      })
-      .then(() => console.log("Welcome email sent"))
-      .catch((err) => console.error("Failed to send welcome email:", err));
+      try {
+        const emailHtml = getWelcomeEmailTemplate({ userName: user.name || 'New User' });
+        await sendEmail({
+          to: user.email,
+          subject: 'Welcome to CampusPulse! 🎉',
+          html: emailHtml,
+        });
+        console.log("Welcome email sent");
+      } catch (err) {
+        console.error("Failed to send welcome email:", err);
+      }
     }
 
     return NextResponse.json(

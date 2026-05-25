@@ -733,18 +733,21 @@ export async function deleteEvent(eventId: string) {
     });
 
     if (event.organizer?.email) {
-      const emailHtml = getEventDeletionEmailTemplate({
-        userName: event.organizer.name || 'Organizer',
-        eventName: event.title,
-      });
+      try {
+        const emailHtml = getEventDeletionEmailTemplate({
+          userName: event.organizer.name || 'Organizer',
+          eventName: event.title,
+        });
 
-      sendEmail({
-        to: event.organizer.email,
-        subject: `🗑️ Event Deleted: ${event.title}`,
-        html: emailHtml,
-      })
-      .then(() => console.log("Event deletion email sent"))
-      .catch((err) => console.error("Event deletion email failed:", err));
+        await sendEmail({
+          to: event.organizer.email,
+          subject: `🗑️ Event Deleted: ${event.title}`,
+          html: emailHtml,
+        });
+        console.log("Event deletion email sent");
+      } catch (err) {
+        console.error("Event deletion email failed:", err);
+      }
     }
 
     revalidatePath('/events');
@@ -778,24 +781,27 @@ export async function cancelRegistration(registrationId: string) {
       where: { id: registrationId },
     });
 
-    // Trigger cancellation email (fire-and-forget)
+    // Trigger cancellation email
     if (registration.user?.email) {
-      console.log(`[EmailDebug] Triggering cancellation email for ${registration.user.email}`);
-      const emailHtml = getCancellationEmailTemplate({
-        userName: registration.user.name || 'Student',
-        eventName: registration.event.title,
-        date: format(new Date(registration.event.date), 'MMMM do, yyyy'),
-        location: registration.event.location || '',
-        eventType: registration.event.eventType,
-      });
+      try {
+        console.log(`[EmailDebug] Triggering cancellation email for ${registration.user.email}`);
+        const emailHtml = getCancellationEmailTemplate({
+          userName: registration.user.name || 'Student',
+          eventName: registration.event.title,
+          date: format(new Date(registration.event.date), 'MMMM do, yyyy'),
+          location: registration.event.location || '',
+          eventType: registration.event.eventType,
+        });
 
-      sendEmail({
-        to: registration.user.email,
-        subject: `🚫 Cancellation Confirmed: ${registration.event.title}`,
-        html: emailHtml,
-      })
-      .then(() => console.log("Cancellation email sent"))
-      .catch(err => console.error('[EmailDebug] Cancellation email failed:', err));
+        await sendEmail({
+          to: registration.user.email,
+          subject: `🚫 Cancellation Confirmed: ${registration.event.title}`,
+          html: emailHtml,
+        });
+        console.log("Cancellation email sent");
+      } catch (err) {
+        console.error('[EmailDebug] Cancellation email failed:', err);
+      }
     }
 
     revalidatePath(`/events/${registration.eventId}`);
