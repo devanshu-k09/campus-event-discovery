@@ -9,7 +9,7 @@ import { uploadToCloudinary } from '@/lib/cloudinary';
 import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import crypto from 'crypto';
-import { sendEmail, getBookingEmailTemplate, getEventPublishedEmailTemplate, getCancellationEmailTemplate } from '@/lib/mail';
+import { sendEmail, getBookingEmailTemplate, getEventPublishedEmailTemplate, getCancellationEmailTemplate, getEventDeletionEmailTemplate } from '@/lib/mail';
 import { format } from 'date-fns';
 import { generateTicketPDF } from '@/lib/ticket-generator';
 import { calculateCurrentPrice } from '@/lib/pricing';
@@ -295,6 +295,7 @@ export async function saveEvent(formData: FormData) {
           subject: '🚀 Event Published Successfully',
           html: emailHtml,
         });
+        console.log("Hosted event email sent");
       } catch (emailError) {
         // Email failure must NOT affect API response
         console.error('[Action] Failed to send event publication email:', emailError);
@@ -453,6 +454,7 @@ export async function publishDraft(eventId: string) {
           subject: '🚀 Event Published Successfully',
           html: emailHtml,
         });
+        console.log("Hosted event email sent");
       } catch (emailError) {
         console.error('Failed to send event publication email:', emailError);
       }
@@ -666,6 +668,7 @@ export async function registerForEvent(eventId: string, quantity: number = 1) {
         
         if (result) {
           console.log(`[EmailDebug] Email process completed. Message ID: ${result.messageId}`);
+          console.log("Registration email sent");
         } else {
           console.error('[EmailDebug] Email process failed (check SMTP logs above)');
         }
@@ -716,9 +719,34 @@ export async function deleteEvent(eventId: string) {
   if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
 
   try {
+    const event = await prisma.event.findUnique({
+      where: { id: eventId, organizerId: session.user.id },
+      include: { organizer: { select: { name: true, email: true } } },
+    });
+
+    if (!event) {
+      return { success: false, error: 'Event not found or unauthorized' };
+    }
+
     await prisma.event.delete({
       where: { id: eventId, organizerId: session.user.id },
     });
+
+    if (event.organizer?.email) {
+      const emailHtml = getEventDeletionEmailTemplate({
+        userName: event.organizer.name || 'Organizer',
+        eventName: event.title,
+      });
+
+      sendEmail({
+        to: event.organizer.email,
+        subject: `🗑️ Event Deleted: ${event.title}`,
+        html: emailHtml,
+      })
+      .then(() => console.log("Event deletion email sent"))
+      .catch((err) => console.error("Event deletion email failed:", err));
+    }
+
     revalidatePath('/events');
     return { success: true };
   } catch (error) {
@@ -765,7 +793,9 @@ export async function cancelRegistration(registrationId: string) {
         to: registration.user.email,
         subject: `🚫 Cancellation Confirmed: ${registration.event.title}`,
         html: emailHtml,
-      }).catch(err => console.error('[EmailDebug] Cancellation email failed:', err));
+      })
+      .then(() => console.log("Cancellation email sent"))
+      .catch(err => console.error('[EmailDebug] Cancellation email failed:', err));
     }
 
     revalidatePath(`/events/${registration.eventId}`);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { sendEmail, getWelcomeEmailTemplate } from '@/lib/mail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -139,6 +140,18 @@ export async function POST(req: NextRequest) {
         email: true,
       },
     });
+
+    // Send Welcome Email
+    if (user.email) {
+      const emailHtml = getWelcomeEmailTemplate({ userName: user.name || 'New User' });
+      sendEmail({
+        to: user.email,
+        subject: 'Welcome to CampusPulse! 🎉',
+        html: emailHtml,
+      })
+      .then(() => console.log("Welcome email sent"))
+      .catch((err) => console.error("Failed to send welcome email:", err));
+    }
 
     return NextResponse.json(
       { success: true, message: 'User created successfully', data: user },
