@@ -553,12 +553,12 @@ export async function registerForEvent(eventId: string, quantity: number = 1) {
       return { success: false, error: 'Quantity must be between 1 and 10' };
     }
 
-    // Check if already registered
+    // Check if already registered (and not cancelled)
     const existing = await prisma.registration.findFirst({
       where: { eventId, userId: session.user.id },
     });
 
-    if (existing) return { success: false, error: 'Already registered for this event' };
+    if (existing && existing.status !== 'cancelled') return { success: false, error: 'Already registered for this event' };
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -586,7 +586,7 @@ export async function registerForEvent(eventId: string, quantity: number = 1) {
     // Note: Since we only allow one registration record per user, we count registrations by records.
     // If we want to strictly enforce capacity by TICKET COUNT, we'd sum the ticketCount fields.
     const currentTicketCount = await prisma.registration.aggregate({
-      where: { eventId },
+      where: { eventId, status: { not: 'cancelled' } },
       _sum: { ticketCount: true }
     });
     
@@ -601,15 +601,27 @@ export async function registerForEvent(eventId: string, quantity: number = 1) {
         registeredCount: totalBooked, // Use latest count for pricing
     });
 
-    const registration = await prisma.registration.create({
-      data: {
-        eventId,
-        userId: session.user.id,
-        status: event.requiresApproval ? 'waitlist' : 'registered',
-        ticketCount: quantity,
-        priceAtBooking: pricing.currentPrice,
-      },
-    });
+    let registration;
+    if (existing && existing.status === 'cancelled') {
+      registration = await prisma.registration.update({
+        where: { id: existing.id },
+        data: {
+          status: event.requiresApproval ? 'waitlist' : 'registered',
+          ticketCount: quantity,
+          priceAtBooking: pricing.currentPrice,
+        },
+      });
+    } else {
+      registration = await prisma.registration.create({
+        data: {
+          eventId,
+          userId: session.user.id,
+          status: event.requiresApproval ? 'waitlist' : 'registered',
+          ticketCount: quantity,
+          priceAtBooking: pricing.currentPrice,
+        },
+      });
+    }
 
     // Award points for participation
     await prisma.user.update({
@@ -701,7 +713,7 @@ export async function checkUserRegistration(eventId: string) {
     if (!session?.user?.id) return { registered: false };
 
     const registration = await prisma.registration.findFirst({
-      where: { eventId, userId: session.user.id },
+      where: { eventId, userId: session.user.id, status: { not: 'cancelled' } },
     });
 
     return { registered: !!registration, registrationId: registration?.id };
@@ -777,8 +789,9 @@ export async function cancelRegistration(registrationId: string) {
     if (!registration) return { success: false, error: 'Registration not found' };
     if (registration.userId !== session.user.id) return { success: false, error: 'Unauthorized' };
 
-    await prisma.registration.delete({
+    await prisma.registration.update({
       where: { id: registrationId },
+      data: { status: 'cancelled' },
     });
 
     // Trigger cancellation email
@@ -825,6 +838,7 @@ export async function getMyRegistrations() {
     const registrations = await prisma.registration.findMany({
       where: {
         userId: session.user.id,
+        status: { not: 'cancelled' },
       },
       include: {
         event: {
@@ -1037,3 +1051,121 @@ export async function getLikedEvents() {
   }
 }
 
+/**
+ * Get detailed analytics and attendee list for a specific event (Organizer view).
+ */
+export async function getEventManagementDetails(eventId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+
+  try {
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        registrations: {
+          include: { user: true },
+          orderBy: { registeredAt: 'desc' }
+        }
+      }
+    });
+
+    if (!event) return { success: false, error: 'Event not found' };
+    if (event.organizerId !== session.user.id) return { success: false, error: 'Unauthorized' };
+
+    const registrations = event.registrations || [];
+    const activeRegistrations = registrations.filter(r => r.status === 'registered' || r.status === 'attended');
+    const checkedInCount = registrations.filter(r => r.status === 'attended').reduce((acc, r) => acc + r.ticketCount, 0);
+    const cancelledCount = registrations.filter(r => r.status === 'cancelled').reduce((acc, r) => acc + r.ticketCount, 0);
+    const activeTicketsSold = activeRegistrations.reduce((acc, r) => acc + r.ticketCount, 0);
+
+    return {
+      success: true,
+      data: {
+        event: {
+          id: event.id,
+          title: event.title,
+          status: event.status,
+          date: event.date,
+          location: event.location,
+          capacity: event.capacity,
+          price: Number(event.price)
+        },
+        stats: {
+          totalTicketsSold: activeTicketsSold,
+          checkedInCount,
+          cancelledCount,
+          capacityReachPercentage: event.capacity > 0 ? (activeTicketsSold / event.capacity) * 100 : 0
+        },
+        attendees: registrations.map(r => ({
+          id: r.id,
+          name: r.user.name || 'Unknown',
+          email: r.user.email,
+          image: r.user.image,
+          status: r.status,
+          ticketCount: r.ticketCount,
+          registeredAt: r.registeredAt,
+          pricePaid: Number(r.priceAtBooking)
+        }))
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching event details:', error);
+    return { success: false, error: 'Failed to fetch event details' };
+  }
+}
+
+/**
+ * Get aggregated dashboard stats for all events by this organizer.
+ */
+export async function getOrganizerDashboardStats() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+
+  try {
+    const events = await prisma.event.findMany({
+      where: { organizerId: session.user.id },
+      include: {
+        registrations: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    let totalTicketsSold = 0;
+    let totalRevenue = 0;
+    let activeEventsCount = 0;
+
+    const recentEvents = events.map(event => {
+      const activeRegs = event.registrations.filter(r => r.status === 'registered' || r.status === 'attended');
+      const eventTicketsSold = activeRegs.reduce((acc, r) => acc + r.ticketCount, 0);
+      const eventRevenue = activeRegs.reduce((acc, r) => acc + (Number(r.priceAtBooking) * r.ticketCount), 0);
+
+      totalTicketsSold += eventTicketsSold;
+      totalRevenue += eventRevenue;
+      
+      if (event.status === 'published') activeEventsCount++;
+
+      return {
+        id: event.id,
+        title: event.title,
+        status: event.status,
+        date: event.date,
+        ticketsSold: eventTicketsSold,
+        capacity: event.capacity,
+        revenue: eventRevenue
+      };
+    });
+
+    return {
+      success: true,
+      data: {
+        totalTicketsSold,
+        totalRevenue,
+        activeEventsCount,
+        recentEvents
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return { success: false, error: 'Failed to fetch dashboard stats' };
+  }
+}

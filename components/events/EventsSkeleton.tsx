@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { Search, CalendarCheck } from 'lucide-react';
 
 export function EventsSkeleton() {
     return (
@@ -8,10 +8,12 @@ export function EventsSkeleton() {
                 <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between gap-8">
                     {/* Logo */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-                            <span className="material-icons text-white text-xl">school</span>
+                        <div className="bg-primary p-1.5 rounded-lg">
+                            <CalendarCheck className="text-white w-6 h-6" />
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">CampusPulse</span>
+                        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            Campus<span className="text-primary">Pulse</span>
+                        </span>
                     </div>
                     {/* Search Bar Placeholder */}
                     <div className="flex-grow max-w-2xl relative hidden md:block">
