@@ -81,6 +81,12 @@ export function UserAccountNav({ user }: UserAccountNavProps) {
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/organizer/dashboard" className="flex items-center gap-2 text-primary font-semibold">
+                        <Calendar className="h-4 w-4" />
+                        <span>Organizer Dashboard</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
                     <Link href="/dashboard" className="flex items-center gap-2">
                         <LayoutDashboard className="h-4 w-4" />
                         <span>Dashboard</span>
