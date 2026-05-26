@@ -52,18 +52,18 @@ export default function OrganizerDashboard() {
                         <LayoutDashboard className="w-5 h-5" />
                         <span className="font-medium">Dashboard</span>
                     </Link>
-                    <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group">
+                    <Link href="/hosted-events" className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group">
                         <Calendar className="w-5 h-5 group-hover:text-primary" />
                         <span className="font-medium">My Events</span>
                     </Link>
-                    <Link href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group">
+                    <Link href="/organizer/dashboard" className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group">
                         <BarChart3 className="w-5 h-5 group-hover:text-primary" />
                         <span className="font-medium">Analytics</span>
                     </Link>
                 </nav>
 
                 <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                    <Link href="/profile" className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-900 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
                         <div className="relative w-10 h-10 rounded-full border-2 border-white dark:border-slate-700 overflow-hidden bg-slate-200">
                             {session?.user?.image && (
                                 <Image
@@ -75,10 +75,11 @@ export default function OrganizerDashboard() {
                             )}
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-sm font-semibold truncate">{session?.user?.name || 'Organizer'}</p>
+                            <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{session?.user?.name || 'Organizer'}</p>
                             <p className="text-xs text-slate-500 truncate italic">Host Account</p>
                         </div>
-                    </div>
+                        <Settings className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
+                    </Link>
                 </div>
             </aside>
 
