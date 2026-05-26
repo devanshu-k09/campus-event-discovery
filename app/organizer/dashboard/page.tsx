@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import {
     Rocket, LayoutDashboard, Calendar, BarChart3, Users, UserCog, Settings,
-    Plus, Ticket, Zap, DollarSign, TrendingUp, Code, Palette, PartyPopper, Loader2
+    Plus, Ticket, Zap, DollarSign, TrendingUp, Code, Palette, PartyPopper, Loader2, CalendarCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getOrganizerDashboardStats } from '@/app/actions/event';
@@ -40,12 +40,14 @@ export default function OrganizerDashboard() {
 
             {/* Sidebar Navigation */}
             <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-[#101122] flex flex-col fixed h-full transition-colors duration-300 z-20">
-                <div className="p-6 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                        <Rocket className="w-6 h-6" />
+                <Link href="/" className="p-6 flex items-center gap-2 group cursor-pointer">
+                    <div className="bg-primary p-1.5 rounded-lg group-hover:scale-105 transition-transform">
+                        <CalendarCheck className="text-white w-6 h-6" />
                     </div>
-                    <span className="font-bold text-xl tracking-tight">EventHub</span>
-                </div>
+                    <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        Campus<span className="text-primary">Pulse</span>
+                    </span>
+                </Link>
 
                 <nav className="flex-1 px-4 mt-4 space-y-1">
                     <Link href="/organizer/dashboard" className="flex items-center gap-3 px-4 py-3 bg-primary text-white rounded-lg transition-all">
@@ -102,7 +104,7 @@ export default function OrganizerDashboard() {
                 {/* Stats Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {/* Total Tickets Sold */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
+                    <Link href="#recent-events" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer block">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Tickets Sold</p>
@@ -122,10 +124,10 @@ export default function OrganizerDashboard() {
                             <div className="bg-primary/40 h-1/3 w-full rounded-t-sm"></div>
                             <div className="bg-primary h-full w-full rounded-t-sm"></div>
                         </div>
-                    </div>
+                    </Link>
 
                     {/* Active Events */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow">
+                    <Link href="/hosted-events" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow cursor-pointer block">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Active Events</p>
@@ -139,10 +141,10 @@ export default function OrganizerDashboard() {
                             <TrendingUp className="w-3.5 h-3.5" />
                             Live on platform
                         </p>
-                    </div>
+                    </Link>
 
                     {/* Total Revenue */}
-                    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow">
+                    <Link href="#recent-events" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow cursor-pointer block">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Revenue</p>
@@ -153,11 +155,11 @@ export default function OrganizerDashboard() {
                             </div>
                         </div>
                         <p className="text-sm text-slate-500 dark:text-slate-400 italic">Processing for next payout...</p>
-                    </div>
+                    </Link>
                 </div>
 
                 {/* Recent Events Table */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                <div id="recent-events" className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm scroll-mt-24">
                     <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                         <h2 className="text-xl font-bold">Recent Events</h2>
                     </div>

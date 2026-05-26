@@ -23,6 +23,13 @@ export default function EventManagementPage() {
     
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleShare = () => {
+        navigator.clipboard.writeText(`${window.location.origin}/events/${eventId}`);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
 
     useEffect(() => {
         const fetchDetails = async () => {
@@ -63,7 +70,9 @@ export default function EventManagementPage() {
                             <CalendarCheck className="w-6 h-6" />
                         </Link>
                         <div>
-                            <h1 className="text-xl font-bold tracking-tight">EventManager</h1>
+                            <h1 className="text-xl font-bold tracking-tight">
+                                Campus<span className="text-primary">Pulse</span>
+                            </h1>
                         </div>
                     </div>
                     <div className="flex items-center gap-6">
@@ -107,8 +116,8 @@ export default function EventManagementPage() {
                                 <Edit3 className="w-4 h-4" /> Edit Details
                             </button>
                         </Link>
-                        <button className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 flex items-center gap-2 transition-opacity">
-                            <Share2 className="w-4 h-4" /> Share Link
+                        <button onClick={handleShare} className="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:opacity-90 flex items-center gap-2 transition-opacity">
+                            <Share2 className="w-4 h-4" /> {isCopied ? "Copied!" : "Share Link"}
                         </button>
                     </div>
                 </div>
@@ -179,7 +188,7 @@ export default function EventManagementPage() {
 
                                 {/* Event Day Quick Tools */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="group relative overflow-hidden bg-primary rounded-xl p-6 text-white cursor-pointer hover:shadow-xl hover:shadow-primary/20 transition-all">
+                                    <div onClick={() => alert("Hardware scanner module requires camera permissions or a connected device. This feature is coming soon!")} className="group relative overflow-hidden bg-primary rounded-xl p-6 text-white cursor-pointer hover:shadow-xl hover:shadow-primary/20 transition-all">
                                         <div className="flex justify-between items-start mb-12 relative z-10">
                                             <div className="bg-white/20 p-3 rounded-lg backdrop-blur-md">
                                                 <QrCode className="w-8 h-8" />
