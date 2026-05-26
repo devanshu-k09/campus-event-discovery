@@ -58,7 +58,7 @@ export default function OrganizerDashboard() {
                         <Calendar className="w-5 h-5 group-hover:text-primary" />
                         <span className="font-medium">My Events</span>
                     </Link>
-                    <Link href="/organizer/dashboard" className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group">
+                    <Link href="/organizer/analytics" className="flex items-center gap-3 px-4 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all group">
                         <BarChart3 className="w-5 h-5 group-hover:text-primary" />
                         <span className="font-medium">Analytics</span>
                     </Link>
@@ -104,7 +104,7 @@ export default function OrganizerDashboard() {
                 {/* Stats Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {/* Total Tickets Sold */}
-                    <Link href="#recent-events" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer block">
+                    <Link href="/organizer/analytics" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer block">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Tickets Sold</p>
@@ -144,7 +144,7 @@ export default function OrganizerDashboard() {
                     </Link>
 
                     {/* Total Revenue */}
-                    <Link href="#recent-events" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow cursor-pointer block">
+                    <Link href="/organizer/analytics" className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm group hover:shadow-md transition-shadow cursor-pointer block">
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Revenue</p>
